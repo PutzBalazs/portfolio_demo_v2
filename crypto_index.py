@@ -36,48 +36,54 @@ allocation = {
     "ATOM": 0.03,
     "AAVE": 0.02
 }
-# Test if weights are applied correctly
-weight_sum = sum(allocation.values())
-if weight_sum != 1:
-    print(f"Allocation weights do not sum to 1. Sum: {weight_sum}")
+def uppdate():
+    # Test if weights are applied correctly
+    weight_sum = sum(allocation.values())
+    if weight_sum != 1:
+        print(f"Allocation weights do not sum to 1. Sum: {weight_sum}")
 
-days = 700
-# Get historical prices for each cryptocurrency
-historical_prices = {}
-for symbol in allocation.keys():
-    prices = get_price(symbol, '1d', days)
-    historical_prices[symbol] = prices
-#print(f"Historiycal prices: {historical_prices}")
- 
-# Adjust for weight in portfolio
-for symbol, prices in historical_prices.items():
-    for i in range(0, days):
-        prices[i] *= allocation[symbol]
+    days = 700
+    # Get historical prices for each cryptocurrency
+    historical_prices = {}
+    for symbol in allocation.keys():
+        prices = get_price(symbol, '1d', days)
+        historical_prices[symbol] = prices
+    #print(f"Historiycal prices: {historical_prices}")
+    
+    # Adjust for weight in portfolio
+    for symbol, prices in historical_prices.items():
+        for i in range(0, days):
+            prices[i] *= allocation[symbol]
 
-#print(f"Historiycal prices weighted: {historical_prices}")
+    #print(f"Historiycal prices weighted: {historical_prices}")
 
-# Calculate the portfolio value for each day
-portfolio_values = []
-for i in range(days):
-    daily_portfolio_value = sum(historical_prices[symbol][i] for symbol in allocation)
-    portfolio_values.append(daily_portfolio_value)
+    # Calculate the portfolio value for each day
+    portfolio_values = []
+    for i in range(days):
+        daily_portfolio_value = sum(historical_prices[symbol][i] for symbol in allocation)
+        portfolio_values.append(daily_portfolio_value)
 
-df = pd.DataFrame(portfolio_values)
+    df = pd.DataFrame(portfolio_values)
 
-# Define the dates (last 7 days)
-today = pd.Timestamp.now().floor('D')
-dates = [today - pd.DateOffset(days=i) for i in range(days)]
-#format dates
-dates = [date.strftime('%Y-%m-%d') for date in dates]
-df["Date"] = dates[::-1]
-df.set_index("Date", inplace=True)
+    # Define the dates (last 7 days)
+    today = pd.Timestamp.now().floor('D')
+    dates = [today - pd.DateOffset(days=i) for i in range(days)]
+    #format dates
+    dates = [date.strftime('%Y-%m-%d') for date in dates]
+    df["Date"] = dates[::-1]
+    df.set_index("Date", inplace=True)
 
-results_df = pd.DataFrame({
-    "Date": df.index,
-    "Portfolio_Value": portfolio_values,
-})
-#print(f"Portfolio values: {portfolio_values}")
+    results_df = pd.DataFrame({
+        "Date": df.index,
+        "Portfolio_Value": portfolio_values,
+    })
+    
+    # Save the results to a csv file
+    results_df.to_csv("portfolio_values.csv", index=False)
 
+#uppdate()
+#read the csv file
+results_df = pd.read_csv("portfolio_values.csv")
 # Adding a sidebar
 st.sidebar.title('Allocation')
 
@@ -86,7 +92,7 @@ allocation_df = pd.DataFrame(allocation.items(), columns=["Crypto", "Allocation"
 
 st.markdown("## Allocations")
 fig, ax = plt.subplots(figsize=(4, 4))
-fig.patch.set_facecolor('black')
+fig.patch.set_facecolor((38/255, 39/255, 48/255))  # Set background color
 wedges, texts = ax.pie(allocation.values(), startangle=90)
 ax.axis('equal')
 alloc_txt = [f"{crypto}: {allocation:.0%}" for crypto, allocation in allocation.items()]
@@ -97,5 +103,5 @@ ax.legend(wedges, alloc_txt,
           fontsize='small')
 
 # Plotting
-st.line_chart(results_df.set_index("Date"), use_container_width=True)
 st.sidebar.pyplot(fig)
+st.line_chart(results_df.set_index("Date"), use_container_width=True)
