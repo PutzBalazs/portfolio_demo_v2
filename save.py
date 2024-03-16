@@ -24,11 +24,20 @@ def get_price(symbol, interval, limit):
     return closed_prices
 
 
-def update(days, allocation):
+def update_100(days, allocation):
+    update_portfolio(days, allocation, "portfolio_values_100.csv")
+
+
+def update_200(days, allocation):
+    update_portfolio(days, allocation, "portfolio_values_200.csv")
+
+
+def update_portfolio(days, allocation, filename):
     # Test if weights are applied correctly
     weight_sum = sum(allocation.values())
     if weight_sum != 1:
-        print(f"Allocation weights do not sum to 1. Sum: {weight_sum}")
+        st.sidebar.error("Allocation weights must sum to 1. Please adjust the values.")
+        return
 
     # Get historical prices for each cryptocurrency
     historical_prices = {}
@@ -63,7 +72,7 @@ def update(days, allocation):
     })
 
     # Save the results to a csv file
-    results_df.to_csv("portfolio_values.csv", index=False)
+    results_df.to_csv(filename, index=False)
 
 
 # Adding a sidebar
@@ -90,6 +99,11 @@ allocation = {}
 for crypto, weight in initial_allocation.items():
     allocation[crypto] = st.sidebar.number_input(f"Allocation for {crypto}", min_value=0.0, max_value=1.0, value=weight, step=0.01)
 
+# Validate allocation sum
+if sum(allocation.values()) != 1:
+    st.sidebar.error("Allocation weights must sum to 1. Please adjust the values.")
+    st.stop()
+
 # Save the updated allocation to a csv file
 allocation_df = pd.DataFrame(allocation.items(), columns=["Crypto", "Allocation"])
 allocation_df.to_csv("allocation.csv", index=False)
@@ -114,7 +128,16 @@ line_chart = st.line_chart(results_df.set_index("Date"), use_container_width=Tru
 # Input field for number of days
 days_input = st.sidebar.number_input("Number of Days (max 500)", min_value=1, max_value=500, value=100)
 
-# Button to update the chart
-if st.sidebar.button("Update Chart"):
-    update(days_input, allocation)
-    st.rerun()
+# Dropdown for updating the chart
+update_option = st.sidebar.selectbox("Update Chart for:", ["Last 100 Days", "Last 200 Days"])
+
+if update_option == "Last 100 Days":
+    if st.sidebar.button("Update Chart (Last 100 Days)"):
+        update_100(days_input, allocation)
+        st.rerun()
+
+elif update_option == "Last 200 Days":
+    if st.sidebar.button("Update Chart (Last 200 Days)"):
+        update_200(days_input, allocation)
+        st.rerun()
+
